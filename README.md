@@ -1,5 +1,12 @@
 # Ravens - Transporter Networks
 
+This is a fork of Google Ravens repository, intended for Table Top Manipulation projects.
+
+### Todos:
+(a) Be able to quickly swap out robot arms or end effectors (suction to gripper)
+(b) Easily be able to add table top objects such as YCB.
+(c) Test with RL methods. 
+
 Ravens is a collection of simulated tasks in PyBullet for learning vision-based robotic manipulation, with emphasis on pick and place.
 It features a Gym-like API with 10 tabletop rearrangement tasks, each with (i) a scripted oracle that provides expert demonstrations (for imitation learning), and (ii) reward functions that provide partial credit (for reinforcement learning).
 
