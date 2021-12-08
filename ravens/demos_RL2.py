@@ -52,6 +52,8 @@ from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.tune.logger import pretty_print
 from ray.tune.registry import register_env
 
+from stable_baselines3.common.env_checker import check_env
+
 flag_dict = dict()
 flag_dict['assets_root'] = '.'
 flag_dict['data_dir'] = '.'
@@ -181,10 +183,23 @@ class TorchCustomModel(TorchModelV2, nn.Module):
 
 def main():
 
+    # get device
+    if torch.cuda.is_available():
+        device = torch.device('cuda:0')
+        torch.cuda.empty_cache()
+        print("Device set to : cude")
+    else:
+        device = torch.device('cpu')
+        print("Device set to : cpu")
+
+    device = torch.device('cpu')
+    print("Device set to : cpu")
+
     flag_dict['assets_root'] = './ravens/environments/assets/'
     flag_dict['disp'] = False
     flag_dict['task'] = 'block-insertion'
     flag_dict['n'] = 10
+    flag_dict['use_egl'] = False
 
     # Initialize environment and task.
     '''
@@ -218,7 +233,7 @@ def main():
     # above is from demos.py pretty much =======================================
     # bottom from: https://docs.ray.io/en/latest/rllib-env.html
     #ray.init(local_mode=True, ignore_reinit_error=True) # local mode for debugging
-    ray.init(ignore_reinit_error=True)
+    ray.init(object_store_memory=78643200)
     agent_cams = cameras.RealSenseD415.CONFIG
     color_tuple = [
         gym.spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
@@ -236,8 +251,8 @@ def main():
     config = {
         "env": Environment,
         'env_config': flag_dict,
-        'num_gpus': 1,
-        'num_workers': 1,
+        'num_gpus': 0,
+        'num_workers': 0,
         'num_envs_per_worker': 1,
         'log_level': "WARN",
         'observation_space': gym.spaces.Dict({
@@ -266,6 +281,8 @@ def main():
 
     print('register env...-----------------------------------------------------')
     register_env(env_name, lambda config: Environment(config))
+    #check_env(Environment(config))
+    print('environment checked!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
     print('env registered!=====================================================')
     #pdb.set_trace()
