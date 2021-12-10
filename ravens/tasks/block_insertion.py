@@ -22,6 +22,37 @@ from ravens.utils import utils
 import pybullet as p
 
 
+class BlockInsertion_1(Task):
+  """Insertion Task - Base Variant."""
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.max_steps = 3
+
+  def reset(self, env):
+    super().reset(env)
+    block_id = self.add_block(env)
+    targ_pose = self.add_fixture(env)
+    # self.goals.append(
+    #     ([block_id], [2 * np.pi], [[0]], [targ_pose], 'pose', None, 1.))
+    self.goals.append(([(block_id, (2 * np.pi, None))], np.int32([[1]]),
+                       [targ_pose], False, True, 'pose', None, 1))
+
+  def add_block(self, env):
+    """Add L-shaped block."""
+    size = (0.1, 0.1, 0.04)
+    urdf = 'insertion/ell.urdf'
+    pose = self.get_random_pose(env, size)
+    return env.add_object(urdf, pose)
+
+  def add_fixture(self, env):
+    """Add L-shaped fixture to place block."""
+    size = (0.1, 0.1, 0.04)
+    urdf = 'insertion/fixture.urdf'
+    pose = self.get_random_pose(env, size)
+    env.add_object(urdf, pose, 'fixed')
+    return pose
+
 class BlockInsertion(Task):
   """Insertion Task - Base Variant."""
 

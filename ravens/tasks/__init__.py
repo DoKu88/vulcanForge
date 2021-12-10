@@ -31,6 +31,7 @@ from ravens.tasks.stack_block_pyramid import StackBlockPyramid
 from ravens.tasks.sweeping_piles import SweepingPiles
 from ravens.tasks.task import Task
 from ravens.tasks.towers_of_hanoi import TowersOfHanoi
+from ravens.tasks.block_insertion import BlockInsertion_1
 
 names = {
     'align-box-corner': AlignBoxCorner,
@@ -47,5 +48,6 @@ names = {
     'place-red-in-green': PlaceRedInGreen,
     'stack-block-pyramid': StackBlockPyramid,
     'sweeping-piles': SweepingPiles,
-    'towers-of-hanoi': TowersOfHanoi
+    'towers-of-hanoi': TowersOfHanoi,
+    'block-insertion_1': BlockInsertion_1
 }

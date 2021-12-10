@@ -106,22 +106,8 @@ class Environment(gym.Env):
 
     self.action_space = gym.spaces.Dict({
         'pose0_pos': self.position_bounds,
-        'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32),
-        'pose1_pos': self.position_bounds,
-        'pose1_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
+        'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
     })
-    '''
-    self.action_space = gym.spaces.Dict({
-        'pose0':
-            gym.spaces.Tuple(
-                (self.position_bounds,
-                 gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32))),
-        'pose1':
-            gym.spaces.Tuple(
-                (self.position_bounds,
-                 gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)))
-    })
-    '''
 
     # Start PyBullet.
     disp_option = p.DIRECT

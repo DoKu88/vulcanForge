@@ -40,7 +40,7 @@ from gym.envs.registration import register
 import torch
 
 # stable_baselines3 Imports:
-from stable_baselines3 import A2C
+from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.env_checker import check_env
 
 # RLLIB Imports:
@@ -84,7 +84,7 @@ def main():
 
     flag_dict['assets_root'] = './ravens/environments/assets/'
     flag_dict['disp'] = False
-    flag_dict['task'] = 'block-insertion'
+    flag_dict['task'] = 'block-insertion_1'
     flag_dict['n'] = 10
     flag_dict['use_egl'] = False
 
@@ -147,9 +147,7 @@ def main():
         }),
         'action_space' : gym.spaces.Dict({
             'pose0_pos': position_bounds,
-            'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32),
-            'pose1_pos': position_bounds,
-            'pose1_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
+            'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
         }),
         'framework': 'torch',
         'train_batch_size': 1,
@@ -163,7 +161,7 @@ def main():
     # stable_baselines3 experiment =============================================
     '''
     env = Environment(flag_dict)
-    model = A2C('CnnPolicy', env).learn(total_timesteps=100)
+    model = PPO('CnnPolicy', env, policy_kwargs=flag_dict).learn(total_timesteps=100)
     '''
 
     # ==========================================================================
@@ -180,6 +178,7 @@ def main():
         print('training step: ', ktr)
         print(trainer.train())
         ktr += 1
+
 
 
 if __name__ == "__main__":

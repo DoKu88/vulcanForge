@@ -48,7 +48,7 @@ class Task():
     if continuous:
       self.primitive = primitives.PickPlaceContinuous()
     else:
-      self.primitive = primitives.PickPlace()
+      self.primitive = primitives.PickOrPlace() #primitives.PickPlace()
     self.oracle_cams = cameras.Oracle.CONFIG
 
     # Evaluation epsilons (for pose evaluation metric).

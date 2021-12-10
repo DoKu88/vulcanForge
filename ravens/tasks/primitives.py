@@ -18,6 +18,55 @@
 import numpy as np
 from ravens.utils import utils
 
+class PickOrPlace():
+ """ Pick or Place primitive
+     Use PickPlace for inspiration, but ultimately only take one pick or place
+     """
+ def __init__(self, height=0.32, speed=0.01):
+   self.height, self.speed = height, speed
+
+ def __call__(self, movej, movep, ee, pose0_pos, pose0_orien):
+   """Execute pick and place primitive.
+
+   Args:
+     movej: function to move robot joints.
+     movep: function to move robot end effector pose.
+     ee: robot end effector.
+     pose0: SE(3) picking pose.
+     pose1: SE(3) placing pose.
+
+   Returns:
+     timeout: robot movement timed out if True.
+   """
+
+   pose0 = (pose0_pos, pose0_orien)
+
+   pick_pose = pose0
+
+   # Execute picking primitive.
+   prepick_to_pick = ((0, 0, 0.32), (0, 0, 0, 1))
+   postpick_to_pick = ((0, 0, self.height), (0, 0, 0, 1))
+   prepick_pose = utils.multiply(pick_pose, prepick_to_pick)
+   postpick_pose = utils.multiply(pick_pose, postpick_to_pick)
+   timeout = movep(prepick_pose)
+
+   # Move towards pick pose until contact is detected.
+   delta = (np.float32([0, 0, -0.001]),
+            utils.eulerXYZ_to_quatXYZW((0, 0, 0)))
+   targ_pose = prepick_pose
+   while not ee.detect_contact():  # and target_pose[2] > 0:
+     targ_pose = utils.multiply(targ_pose, delta)
+     timeout |= movep(targ_pose)
+     if timeout:
+       return True
+
+   # Activate end effector, move up, and check picking success.
+   ee.activate()
+   timeout |= movep(postpick_pose, self.speed)
+   pick_success = ee.check_grasp()
+
+   return timeout
+
 
 class PickPlace():
   """Pick and place primitive."""
