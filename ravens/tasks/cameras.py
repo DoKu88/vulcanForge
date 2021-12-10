@@ -38,6 +38,7 @@ class RealSenseD415():
   right_rotation = p.getQuaternionFromEuler(right_rotation)
 
   # Default camera configs.
+  '''
   CONFIG = [{
       'image_size': image_size,
       'intrinsics': intrinsics,
@@ -59,7 +60,18 @@ class RealSenseD415():
       'rotation': right_rotation,
       'zrange': (0.01, 10.),
       'noise': False
+  }] '''
+
+  CONFIG = [{
+      'image_size': image_size,
+      'intrinsics': intrinsics,
+      'position': front_position,
+      'rotation': front_rotation,
+      'zrange': (0.01, 10.),
+      'noise': False
   }]
+
+
 
 
 class Oracle():

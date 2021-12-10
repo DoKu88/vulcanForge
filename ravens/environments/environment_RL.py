@@ -43,9 +43,7 @@ PLANE_URDF_PATH = 'plane/plane.urdf'
 class Environment(gym.Env):
   """OpenAI Gym-style environment class."""
 
-  def __init__(self,
-               #assets_root,
-               config):
+  def __init__(self, config):
     """Creates OpenAI Gym-style environment with PyBullet.
 
     Args:
@@ -67,6 +65,8 @@ class Environment(gym.Env):
     # an rllib training thing
     # assign passed in variable names from dictionary if specified
     print('inside env! init() -------------------------------------------------')
+    print('config: ')
+    print(config)
     task = config.get('task', None)
     disp = config.get('disp', False)
     shared_memory = config.get('shared_memory', False)
@@ -101,6 +101,13 @@ class Environment(gym.Env):
         high=np.array([0.75, 0.5, 0.28], dtype=np.float32),
         shape=(3,),
         dtype=np.float32)
+    '''
+    self.action_space = gym.spaces.Dict({
+        'pose0_pos': self.position_bounds,
+        'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32),
+        'pose1_pos': self.position_bounds,
+        'pose1_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
+    })'''
     self.action_space = gym.spaces.Dict({
         'pose0':
             gym.spaces.Tuple(
@@ -209,6 +216,7 @@ class Environment(gym.Env):
     # TODO(andyzeng): add back parallel-jaw grippers.
     self.ur5 = pybullet_utils.load_urdf(
         p, os.path.join(self.assets_root, UR5_URDF_PATH))
+    #import pdb; pdb.set_trace()
     self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
     self.ee_tip = 10  # Link ID of suction cup.
 
@@ -243,6 +251,7 @@ class Environment(gym.Env):
       (obs, reward, done, info) tuple containing MDP step data.
     """
     if action is not None:
+      #import pdb; pdb.set_trace()
       timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
 
       # Exit early if action times out. We still return an observation
@@ -360,9 +369,11 @@ class Environment(gym.Env):
   # Robot Movement Functions
   #---------------------------------------------------------------------------
 
-  def movej(self, targj, speed=0.01, timeout=5):
+  #def movej(self, targj, speed=0.01, timeout=5):
+  def movej(self, targj, speed=0.01, timeout=10):
     """Move UR5 to target joint configuration."""
     t0 = time.time()
+    print('targj: ', targj)
     while (time.time() - t0) < timeout:
       currj = [p.getJointState(self.ur5, i)[0] for i in self.joints]
       currj = np.array(currj)

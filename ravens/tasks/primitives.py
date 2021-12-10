@@ -38,7 +38,7 @@ class PickPlace():
     Returns:
       timeout: robot movement timed out if True.
     """
-
+    
     pick_pose, place_pose = pose0, pose1
 
     # Execute picking primitive.
