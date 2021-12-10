@@ -85,10 +85,11 @@ class Environment(gym.Env):
     config_cam = self.agent_cams[0]
     color_tuple = gym.spaces.Box(0, 255, config_cam['image_size'] + (3,), dtype=np.uint8)
     depth_tuple = gym.spaces.Box(0.0, 20.0, config_cam['image_size'], dtype=np.float32)
-    self.observation_space = gym.spaces.Dict({
-        'color': color_tuple,
-        'depth': depth_tuple,
-    })
+    #self.observation_space = gym.spaces.Dict({
+    #    'color': color_tuple,
+    #    'depth': depth_tuple,
+    #})
+    self.observation_space = color_tuple
 
     self.position_orientation_bounds = gym.spaces.Box(
         low=np.array([0.25, -0.5, 0., -1.0, -1.0, -1.0, -1.0], dtype=np.float32),
@@ -411,8 +412,8 @@ class Environment(gym.Env):
     obs['color'] = color
     obs['depth'] = depth
 
-    return obs
-
+    #return obs
+    return color
 
 class EnvironmentNoRotationsWithHeightmap(Environment):
   """Environment that disables any rotations and always passes [0, 0, 0, 1]."""

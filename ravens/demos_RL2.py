@@ -141,10 +141,11 @@ def main():
         'num_workers': 0,
         'num_envs_per_worker': 1,
         'log_level': "WARN",
-        'observation_space': gym.spaces.Dict({
-            'color': color_tuple,
-            'depth': depth_tuple,
-        }),
+        'observation_space': color_tuple,
+        #'observation_space': gym.spaces.Dict({
+        #    'color': color_tuple,
+        #    'depth': depth_tuple,
+        #}),
         'action_space' : position_orientation_bounds,
         'framework': 'torch',
         'train_batch_size': 1,
@@ -156,15 +157,15 @@ def main():
 
     # ==========================================================================
     # stable_baselines3 experiment =============================================
-    '''
+
     env = Environment(flag_dict)
-    model = PPO('CnnPolicy', env, policy_kwargs=flag_dict).learn(total_timesteps=100)
-    '''
+    model = PPO('CnnPolicy', env).learn(total_timesteps=100)
+
 
     # ==========================================================================
     # RLLIB experiment =========================================================
     #ray.init(local_mode=True, ignore_reinit_error=True) # local mode for debugging
-
+    '''
     ray.init(local_mode=True)
     ppo_config = ppo.DEFAULT_CONFIG.copy()
     ppo_config.update(config)
@@ -175,6 +176,7 @@ def main():
         print('training step: ', ktr)
         print(trainer.train())
         ktr += 1
+    '''
 
 
 
