@@ -26,7 +26,7 @@ import numpy as np
 from ravens.tasks import cameras
 from ravens.tasks import planners
 from ravens.tasks import primitives
-from ravens.tasks.grippers import Suction
+from ravens.tasks.grippers import Suction, Spatula
 from ravens.utils import utils
 
 import pybullet as p
@@ -35,14 +35,17 @@ import pybullet as p
 class Task():
   """Base Task class."""
 
-  def __init__(self, continuous = False):
+  def __init__(self, continuous = False, ee='Suction'):
     """Constructor.
 
     Args:
       continuous: Set to `True` if you want the continuous variant.
     """
     self.continuous = continuous
-    self.ee = Suction
+    if ee == 'Suction':
+        self.ee = Suction
+    elif ee == 'Spatula':
+        self.ee = Spatula
     self.mode = 'train'
     self.sixdof = False
     if continuous:
@@ -74,6 +77,22 @@ class Task():
     self._rewards = 0  # Cumulative returned rewards.
     if self.continuous:
       self.primitive.reset()
+
+  # switch end effector in case we want to switch tools
+  def switch_ee(self, ee_new, body=None):
+      if body is not None:
+          self.remove_ee(body)
+
+      if ee_new == "Spatula":
+          ee_new = Spatula
+      elif ee_new == "Suction":
+          ee_new = Suction
+
+      self.ee = ee_new
+
+  # using the ID returned from pybullet, remove end effector body
+  def remove_ee(self, body):
+      p.removeBody(body)
 
   #-------------------------------------------------------------------------
   # Oracle Agent

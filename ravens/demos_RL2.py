@@ -83,7 +83,7 @@ def main():
         print("Device set to : cpu")
 
     flag_dict['assets_root'] = './ravens/environments/assets/'
-    flag_dict['disp'] = False
+    flag_dict['disp'] = True
     flag_dict['task'] = 'block-insertion_1'
     flag_dict['n'] = 10
     flag_dict['use_egl'] = False
@@ -157,15 +157,17 @@ def main():
 
     # ==========================================================================
     # stable_baselines3 experiment =============================================
-
+    # NOTE: supports dict observations but not nested observation spaces :(
+    '''
     env = Environment(flag_dict)
-    model = PPO('CnnPolicy', env).learn(total_timesteps=100)
-
+    model = PPO('CnnPolicy', env)
+    model.learn(total_timesteps=100) # log_interval=1, tb_log_name=folder_name, callback=callbacks
+    '''
 
     # ==========================================================================
     # RLLIB experiment =========================================================
     #ray.init(local_mode=True, ignore_reinit_error=True) # local mode for debugging
-    '''
+
     ray.init(local_mode=True)
     ppo_config = ppo.DEFAULT_CONFIG.copy()
     ppo_config.update(config)
@@ -175,8 +177,8 @@ def main():
     while ktr < 10:
         print('training step: ', ktr)
         print(trainer.train())
+
         ktr += 1
-    '''
 
 
 

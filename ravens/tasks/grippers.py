@@ -30,9 +30,11 @@ SUCTION_HEAD_URDF = 'ur5/suction/suction-head.urdf'
 class Gripper:
   """Base gripper class."""
 
-  def __init__(self, assets_root):
+  def __init__(self, assets_root, ee):
     self.assets_root = assets_root
     self.activated = False
+    self.parentLinkIndex = ee
+    self.body = None
 
   def step(self):
     """This function can be used to create gripper-specific behaviors."""
@@ -51,7 +53,7 @@ class Spatula(Gripper):
 
   def __init__(self, assets_root, robot, ee, obj_ids):  # pylint: disable=unused-argument
     """Creates spatula and 'attaches' it to the robot."""
-    super().__init__(assets_root)
+    super().__init__(assets_root, ee)
 
     # Load spatula model.
     pose = ((0.487, 0.109, 0.438), p.getQuaternionFromEuler((np.pi, 0, 0)))
@@ -66,6 +68,7 @@ class Spatula(Gripper):
         jointAxis=(0, 0, 0),
         parentFramePosition=(0, 0, 0),
         childFramePosition=(0, 0, 0.01))
+    self.body = base
 
 
 class Suction(Gripper):
@@ -96,7 +99,7 @@ class Suction(Gripper):
       ee: int representing PyBullet ID of end effector link.
       obj_ids: list of PyBullet IDs of all suctionable objects in the env.
     """
-    super().__init__(assets_root)
+    super().__init__(assets_root, ee)
 
     # Load suction gripper base model (visual only).
     pose = ((0.487, 0.109, 0.438), p.getQuaternionFromEuler((np.pi, 0, 0)))
@@ -117,6 +120,7 @@ class Suction(Gripper):
     pose = ((0.487, 0.109, 0.347), p.getQuaternionFromEuler((np.pi, 0, 0)))
     self.body = pybullet_utils.load_urdf(
         p, os.path.join(self.assets_root, SUCTION_HEAD_URDF), pose[0], pose[1])
+    print('self.body suction: ', self.body, ' ==================================')
     constraint_id = p.createConstraint(
         parentBodyUniqueId=robot,
         parentLinkIndex=ee,

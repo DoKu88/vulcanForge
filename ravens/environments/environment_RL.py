@@ -231,6 +231,12 @@ class Environment(gym.Env):
       (obs, reward, done, info) tuple containing MDP step data.
     """
     if action is not None:
+      # test to switch to spatula ee
+      print('switching ee!------------------------------------------------------')
+
+      self.task.switch_ee('Spatula', body=self.ee.body)
+      self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
+      self.ee_tip = 10  # Link ID of suction cup.
       #import pdb; pdb.set_trace()
       #timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
       timeout = self.task.primitive(self.movej, self.movep, self.ee, action)
