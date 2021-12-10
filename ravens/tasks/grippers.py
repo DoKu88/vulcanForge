@@ -70,6 +70,30 @@ class Spatula(Gripper):
         childFramePosition=(0, 0, 0.01))
     self.body = base
 
+  def detect_contact(self):
+    """Detects a contact with a rigid object."""
+    body, link = self.body, 0
+    if self.activated and self.contact_constraint is not None:
+      try:
+        info = p.getConstraintInfo(self.contact_constraint)
+        body, link = info[2], info[3]
+      except:  # pylint: disable=bare-except
+        self.contact_constraint = None
+        pass
+
+    # Get all contact points between the suction and a rigid body.
+    points = p.getContactPoints(bodyA=body, linkIndexA=link)
+    # print(points)
+    # exit()
+    if self.activated:
+      points = [point for point in points if point[2] != self.body]
+
+    # # We know if len(points) > 0, contact is made with SOME rigid item.
+    if points:
+      return True
+
+    return False
+
 
 class Suction(Gripper):
   """Simulate simple suction dynamics."""

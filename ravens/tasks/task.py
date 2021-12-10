@@ -42,6 +42,7 @@ class Task():
       continuous: Set to `True` if you want the continuous variant.
     """
     self.continuous = continuous
+    self.ee_label = ee
     if ee == 'Suction':
         self.ee = Suction
     elif ee == 'Spatula':
@@ -79,13 +80,15 @@ class Task():
       self.primitive.reset()
 
   # switch end effector in case we want to switch tools
-  def switch_ee(self, ee_new, body=None):
+  def switch_ee(self, ee_new_label, body=None):
       if body is not None:
           self.remove_ee(body)
 
-      if ee_new == "Spatula":
+      self.ee_label = ee_new_label
+
+      if ee_new_label == "Spatula":
           ee_new = Spatula
-      elif ee_new == "Suction":
+      elif ee_new_label == "Suction":
           ee_new = Suction
 
       self.ee = ee_new
