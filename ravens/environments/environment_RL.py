@@ -82,17 +82,20 @@ class Environment(gym.Env):
 
     self.assets_root = assets_root
 
-    color_tuple = [
-        gym.spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
-        for config in self.agent_cams
-    ]
-    depth_tuple = [
-        gym.spaces.Box(0.0, 20.0, config['image_size'], dtype=np.float32)
-        for config in self.agent_cams
-    ]
+    #color_tuple = [
+    #    gym.spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
+    #    for config in self.agent_cams
+    #]
+    #depth_tuple = [
+    #    gym.spaces.Box(0.0, 20.0, config['image_size'], dtype=np.float32)
+    #    for config in self.agent_cams
+    #]
+    config_cam = self.agent_cams[0]
+    color_tuple = gym.spaces.Box(0, 255, config_cam['image_size'] + (3,), dtype=np.uint8)
+    depth_tuple = gym.spaces.Box(0.0, 20.0, config_cam['image_size'], dtype=np.float32)
     self.observation_space = gym.spaces.Dict({
-        'color': gym.spaces.Tuple(color_tuple),
-        'depth': gym.spaces.Tuple(depth_tuple),
+        'color': color_tuple,
+        'depth': depth_tuple,
     })
 
     self.position_bounds = gym.spaces.Box(
@@ -420,11 +423,17 @@ class Environment(gym.Env):
 
   def _get_obs(self):
     # Get RGB-D camera image observations.
+    '''
     obs = {'color': (), 'depth': ()}
     for config in self.agent_cams:
       color, depth, _ = self.render_camera(config)
       obs['color'] += (color,)
       obs['depth'] += (depth,)
+    '''
+    obs = dict()
+    color, depth, _ = self.render_camera(self.agent_cams[0])
+    obs['color'] = color
+    obs['depth'] = depth
 
     return obs
 
@@ -473,10 +482,12 @@ class EnvironmentNoRotationsWithHeightmap(Environment):
     obs = {}
 
     color_depth_obs = {'color': (), 'depth': ()}
+
     for config in self.agent_cams:
       color, depth, _ = self.render_camera(config)
       color_depth_obs['color'] += (color,)
       color_depth_obs['depth'] += (depth,)
+
     cmap, hmap = utils.get_fused_heightmap(color_depth_obs, self.agent_cams,
                                            self.task.bounds, pix_size=0.003125)
     obs['heightmap'] = (cmap, hmap)

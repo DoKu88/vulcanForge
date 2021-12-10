@@ -39,6 +39,11 @@ import pdb
 from gym.envs.registration import register
 import torch
 
+# stable_baselines3 Imports:
+from stable_baselines3 import A2C
+from stable_baselines3.common.env_checker import check_env
+
+# RLLIB Imports:
 import ray
 from ray import tune
 from ray.rllib.agents import ppo
@@ -53,7 +58,6 @@ from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.tune.logger import pretty_print
 from ray.tune.registry import register_env
 
-from stable_baselines3.common.env_checker import check_env
 
 flag_dict = dict()
 flag_dict['assets_root'] = './ravens/environments/assets/'
@@ -106,17 +110,21 @@ def main():
 
     # above is from demos.py pretty much =======================================
     # bottom from: https://docs.ray.io/en/latest/rllib-env.html
-    #ray.init(local_mode=True, ignore_reinit_error=True) # local mode for debugging
-    ray.init()
+
+
     agent_cams = cameras.RealSenseD415.CONFIG
-    color_tuple = [
-        gym.spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
-        for config in agent_cams
-    ]
-    depth_tuple = [
-        gym.spaces.Box(0.0, 20.0, config['image_size'], dtype=np.float32)
-        for config in agent_cams
-    ]
+    #color_tuple = [
+    #    gym.spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
+    #    for config in agent_cams
+    #]
+    #depth_tuple = [
+    #    gym.spaces.Box(0.0, 20.0, config['image_size'], dtype=np.float32)
+    #    for config in agent_cams
+    #]
+    config_cam = agent_cams[0]
+    color_tuple = gym.spaces.Box(0, 255, config_cam['image_size'] + (3,), dtype=np.uint8)
+    depth_tuple = gym.spaces.Box(0, 255, config_cam['image_size'] + (3,), dtype=np.uint8)
+
     position_bounds = gym.spaces.Box(
         low=np.array([0.25, -0.5, 0.], dtype=np.float32),
         high=np.array([0.75, 0.5, 0.28], dtype=np.float32),
@@ -134,8 +142,8 @@ def main():
         'num_envs_per_worker': 1,
         'log_level': "WARN",
         'observation_space': gym.spaces.Dict({
-            'color': gym.spaces.Tuple(color_tuple),
-            'depth': gym.spaces.Tuple(depth_tuple),
+            'color': color_tuple,
+            'depth': depth_tuple,
         }),
         'action_space' : gym.spaces.Dict({
             'pose0_pos': position_bounds,
@@ -148,22 +156,25 @@ def main():
         'sgd_minibatch_size': 1,
         'rollout_fragment_length':1
     }
-    ppo_config = ppo.DEFAULT_CONFIG.copy()
-    ppo_config.update(config)
 
     env_name = "example-v0"
 
-    print('register env...-----------------------------------------------------')
+    # ==========================================================================
+    # stable_baselines3 experiment =============================================
+    '''
+    env = Environment(flag_dict)
+    model = A2C('CnnPolicy', env).learn(total_timesteps=100)
+    '''
+
+    # ==========================================================================
+    # RLLIB experiment =========================================================
+    #ray.init(local_mode=True, ignore_reinit_error=True) # local mode for debugging
+
+    ray.init()
+    ppo_config = ppo.DEFAULT_CONFIG.copy()
+    ppo_config.update(config)
     register_env(env_name, lambda config: Environment(config))
-    #check_env(Environment(config))
-    print('environment checked!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-
-    print('env registered!=====================================================')
-    #pdb.set_trace()
     trainer = ppo.PPOTrainer(env=env_name, config=config)
-
-    print('trainer initalized++++++++++++++++++++++++++++++++++++++++++++++++++')
-
     ktr = 0
     while ktr < 10:
         print('training step: ', ktr)
