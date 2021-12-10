@@ -125,10 +125,10 @@ def main():
     color_tuple = gym.spaces.Box(0, 255, config_cam['image_size'] + (3,), dtype=np.uint8)
     depth_tuple = gym.spaces.Box(0, 255, config_cam['image_size'] + (3,), dtype=np.uint8)
 
-    position_bounds = gym.spaces.Box(
-        low=np.array([0.25, -0.5, 0.], dtype=np.float32),
-        high=np.array([0.75, 0.5, 0.28], dtype=np.float32),
-        shape=(3,),
+    position_orientation_bounds = gym.spaces.Box(
+        low=np.array([0.25, -0.5, 0., -1.0, -1.0, -1.0, -1.0], dtype=np.float32),
+        high=np.array([0.75, 0.5, 0.28, 1.0, 1.0, 1.0, 1.0], dtype=np.float32),
+        shape=(7,),
         dtype=np.float32)
 
     #bounds = np.array([[0.25, 0.75], [-0.5, 0.5], [0, 0.3]])
@@ -145,10 +145,7 @@ def main():
             'color': color_tuple,
             'depth': depth_tuple,
         }),
-        'action_space' : gym.spaces.Dict({
-            'pose0_pos': position_bounds,
-            'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
-        }),
+        'action_space' : position_orientation_bounds,
         'framework': 'torch',
         'train_batch_size': 1,
         'sgd_minibatch_size': 1,
@@ -168,7 +165,7 @@ def main():
     # RLLIB experiment =========================================================
     #ray.init(local_mode=True, ignore_reinit_error=True) # local mode for debugging
 
-    ray.init()
+    ray.init(local_mode=True)
     ppo_config = ppo.DEFAULT_CONFIG.copy()
     ppo_config.update(config)
     register_env(env_name, lambda config: Environment(config))

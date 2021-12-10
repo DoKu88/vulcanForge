@@ -82,14 +82,6 @@ class Environment(gym.Env):
 
     self.assets_root = assets_root
 
-    #color_tuple = [
-    #    gym.spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
-    #    for config in self.agent_cams
-    #]
-    #depth_tuple = [
-    #    gym.spaces.Box(0.0, 20.0, config['image_size'], dtype=np.float32)
-    #    for config in self.agent_cams
-    #]
     config_cam = self.agent_cams[0]
     color_tuple = gym.spaces.Box(0, 255, config_cam['image_size'] + (3,), dtype=np.uint8)
     depth_tuple = gym.spaces.Box(0.0, 20.0, config_cam['image_size'], dtype=np.float32)
@@ -98,16 +90,13 @@ class Environment(gym.Env):
         'depth': depth_tuple,
     })
 
-    self.position_bounds = gym.spaces.Box(
-        low=np.array([0.25, -0.5, 0.], dtype=np.float32),
-        high=np.array([0.75, 0.5, 0.28], dtype=np.float32),
-        shape=(3,),
+    self.position_orientation_bounds = gym.spaces.Box(
+        low=np.array([0.25, -0.5, 0., -1.0, -1.0, -1.0, -1.0], dtype=np.float32),
+        high=np.array([0.75, 0.5, 0.28, 1.0, 1.0, 1.0, 1.0], dtype=np.float32),
+        shape=(7,),
         dtype=np.float32)
 
-    self.action_space = gym.spaces.Dict({
-        'pose0_pos': self.position_bounds,
-        'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
-    })
+    self.action_space = self.position_orientation_bounds
 
     # Start PyBullet.
     disp_option = p.DIRECT
@@ -242,7 +231,8 @@ class Environment(gym.Env):
     """
     if action is not None:
       #import pdb; pdb.set_trace()
-      timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
+      #timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
+      timeout = self.task.primitive(self.movej, self.movep, self.ee, action)
 
       # Exit early if action times out. We still return an observation
       # so that we don't break the Gym API contract.
