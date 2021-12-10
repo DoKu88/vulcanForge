@@ -25,7 +25,7 @@ class PickPlace():
   def __init__(self, height=0.32, speed=0.01):
     self.height, self.speed = height, speed
 
-  def __call__(self, movej, movep, ee, pose0, pose1):
+  def __call__(self, movej, movep, ee, pose0_pos, pose0_orien, pose1_pos, pose1_orien):
     """Execute pick and place primitive.
 
     Args:
@@ -38,7 +38,10 @@ class PickPlace():
     Returns:
       timeout: robot movement timed out if True.
     """
-    
+
+    pose0 = (pose0_pos, pose0_orien)
+    pose1 = (pose1_pos, pose1_orien)
+
     pick_pose, place_pose = pose0, pose1
 
     # Execute picking primitive.

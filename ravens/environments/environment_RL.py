@@ -65,8 +65,6 @@ class Environment(gym.Env):
     # an rllib training thing
     # assign passed in variable names from dictionary if specified
     print('inside env! init() -------------------------------------------------')
-    print('config: ')
-    print(config)
     task = config.get('task', None)
     disp = config.get('disp', False)
     shared_memory = config.get('shared_memory', False)
@@ -96,18 +94,20 @@ class Environment(gym.Env):
         'color': gym.spaces.Tuple(color_tuple),
         'depth': gym.spaces.Tuple(depth_tuple),
     })
+
     self.position_bounds = gym.spaces.Box(
         low=np.array([0.25, -0.5, 0.], dtype=np.float32),
         high=np.array([0.75, 0.5, 0.28], dtype=np.float32),
         shape=(3,),
         dtype=np.float32)
-    '''
+
     self.action_space = gym.spaces.Dict({
         'pose0_pos': self.position_bounds,
         'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32),
         'pose1_pos': self.position_bounds,
         'pose1_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
-    })'''
+    })
+    '''
     self.action_space = gym.spaces.Dict({
         'pose0':
             gym.spaces.Tuple(
@@ -118,6 +118,7 @@ class Environment(gym.Env):
                 (self.position_bounds,
                  gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)))
     })
+    '''
 
     # Start PyBullet.
     disp_option = p.DIRECT
@@ -373,7 +374,6 @@ class Environment(gym.Env):
   def movej(self, targj, speed=0.01, timeout=10):
     """Move UR5 to target joint configuration."""
     t0 = time.time()
-    print('targj: ', targj)
     while (time.time() - t0) < timeout:
       currj = [p.getJointState(self.ur5, i)[0] for i in self.joints]
       currj = np.array(currj)

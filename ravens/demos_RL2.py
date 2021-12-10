@@ -137,15 +137,11 @@ def main():
             'color': gym.spaces.Tuple(color_tuple),
             'depth': gym.spaces.Tuple(depth_tuple),
         }),
-        'action_space': gym.spaces.Dict({
-            'pose0':
-                gym.spaces.Tuple(
-                    (position_bounds,
-                     gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32))),
-            'pose1':
-                gym.spaces.Tuple(
-                    (position_bounds,
-                     gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)))
+        'action_space' : gym.spaces.Dict({
+            'pose0_pos': position_bounds,
+            'pose0_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32),
+            'pose1_pos': position_bounds,
+            'pose1_orien': gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
         }),
         'framework': 'torch',
         'train_batch_size': 1,
