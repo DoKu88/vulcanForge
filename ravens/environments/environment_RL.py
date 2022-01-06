@@ -30,7 +30,7 @@ from ravens.utils import utils
 from gym import spaces
 
 import pybullet as p
-
+import pybullet as pb
 
 PLACE_STEP = 0.0003
 PLACE_DELTA_THRESHOLD = 0.005
@@ -167,6 +167,37 @@ class Environment(gym.Env):
     self.obj_ids[category].append(obj_id)
     return obj_id
 
+  # add ycb type object and let it drop using the is_static() function
+  def add_object_ycb(self, urdf, pose, category='rigid'):
+    """List of (fixed, rigid, or deformable) objects in env."""
+    fixed_base = 1 if category == 'fixed' else 0
+    obj_id = pybullet_utils.load_urdf(
+      p,
+      os.path.join(self.assets_root, urdf),
+      pose[0],
+      pose[1])
+    self.obj_ids[category].append(obj_id)
+
+    print('constraints: ', p.getNumConstraints())
+    print('dynamics info: ', p.getDynamicsInfo(bodyUniqueId=obj_id, linkIndex=-1))
+    #p.setGravity(0, 0, -9.8)
+    #import pdb; pdb.set_trace()
+    p.stepSimulation()
+
+    #for i in range(500):
+    #    p.stepSimulation()
+    #    print('getBasePositionAndOrientation() for obj: ', obj_id, ' ', p.getBasePositionAndOrientation(obj_id))
+
+    #import pdb; pdb.set_trace()
+    while not self.is_static:
+      print('env not static...')
+      p.stepSimulation()
+      print('getBasePositionAndOrientation() for obj: ', obj_id, ' ', p.getBasePositionAndOrientation(obj_id))
+
+    #import pdb; pdb.set_trace()
+
+    return obj_id
+
   #---------------------------------------------------------------------------
   # Standard Gym Functions
   #---------------------------------------------------------------------------
@@ -243,6 +274,8 @@ class Environment(gym.Env):
       self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
       self.ee_tip = 10  # Link ID of suction cup.
 
+      #self.add_object('ycb_dataset/cube/cube.urdf', )
+
       #timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
       timeout = self.task.primitive(self.movej, self.movep, self.ee, action)
 
@@ -264,6 +297,16 @@ class Environment(gym.Env):
     info.update(self.info)
 
     obs = self._get_obs()
+
+    size = (0.1, 0.1, 0.04)
+    pose = self.task.get_random_pose(self, size)
+    pose = list(pose)
+    for i in range(len(pose)):
+        pose[i] = list(pose[i])
+    pose[0][2] += 0.5
+    self.add_object_ycb('ycb_dataset/003_cracker_box/003_cracker_box.urdf', pose)
+
+    #import pdb; pdb.set_trace()
 
     return obs, reward, done, info
 
