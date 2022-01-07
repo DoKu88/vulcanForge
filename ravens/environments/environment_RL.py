@@ -148,6 +148,19 @@ class Environment(gym.Env):
 
   print('exiting env! init() *************************************************')
 
+  # in this function we are going to normalize the action s.t. it fits within
+  # the action space
+  def normalize_action_space(self, action):
+    norm_action = np.zeros(len(action), dtype=np.float32)
+
+    for i in range(len(action)):
+        # know that all original actions are scaled from -1 to +1
+        norm_action[i] = (action[i] - -1.0) / (1.0 - -1.0) # [-1,1] -> [0,1]
+        norm_action[i] *= (self.action_space.high[i] - self.action_space.low[i])
+        norm_action[i] += self.action_space.low[i] # [0,1] -> action_space
+
+    return norm_action
+
   @property
   def is_static(self):
     """Return true if objects are no longer moving."""
@@ -178,23 +191,8 @@ class Environment(gym.Env):
       pose[1])
     self.obj_ids[category].append(obj_id)
 
-    print('constraints: ', p.getNumConstraints())
-    print('dynamics info: ', p.getDynamicsInfo(bodyUniqueId=obj_id, linkIndex=-1))
-    #p.setGravity(0, 0, -9.8)
-    #import pdb; pdb.set_trace()
-    p.stepSimulation()
-
-    #for i in range(500):
-    #    p.stepSimulation()
-    #    print('getBasePositionAndOrientation() for obj: ', obj_id, ' ', p.getBasePositionAndOrientation(obj_id))
-
-    #import pdb; pdb.set_trace()
     while not self.is_static:
-      print('env not static...')
       p.stepSimulation()
-      print('getBasePositionAndOrientation() for obj: ', obj_id, ' ', p.getBasePositionAndOrientation(obj_id))
-
-    #import pdb; pdb.set_trace()
 
     return obj_id
 
@@ -262,6 +260,10 @@ class Environment(gym.Env):
       (obs, reward, done, info) tuple containing MDP step data.
     """
     if action is not None:
+      print('action: ', action)
+      action = self.normalize_action_space(action)
+      p.addUserDebugLine([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+      p.addUserDebugLine([0.0, 0.0, 0.0], [1.0, 1.0, -1.0])
       # test to switch to spatula ee
       print('switching ee!------------------------------------------------------')
 
@@ -273,8 +275,6 @@ class Environment(gym.Env):
           self.task.switch_ee('Suction', body=self.ee.body)
       self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
       self.ee_tip = 10  # Link ID of suction cup.
-
-      #self.add_object('ycb_dataset/cube/cube.urdf', )
 
       #timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
       timeout = self.task.primitive(self.movej, self.movep, self.ee, action)
@@ -305,8 +305,6 @@ class Environment(gym.Env):
         pose[i] = list(pose[i])
     pose[0][2] += 0.5
     self.add_object_ycb('ycb_dataset/003_cracker_box/003_cracker_box.urdf', pose)
-
-    #import pdb; pdb.set_trace()
 
     return obs, reward, done, info
 

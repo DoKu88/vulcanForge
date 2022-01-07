@@ -228,7 +228,6 @@ class Task():
   #-------------------------------------------------------------------------
   # Reward Function and Task Completion Metrics
   #-------------------------------------------------------------------------
-
   def reward(self):
     """Get delta rewards for current timestep.
 
@@ -243,6 +242,8 @@ class Task():
     if self.goals:
       # Unpack next goal step.
       objs, matches, targs, _, _, metric, params, max_reward = self.goals[0]
+
+      import pdb; pdb.set_trace()
 
       # Evaluate by matching object poses.
       if metric == 'pose':
@@ -279,6 +280,24 @@ class Task():
             zone_pts += np.sum(np.float32(valid_pts))
             total_pts += pts.shape[1]
         step_reward = max_reward * (zone_pts / total_pts)
+
+      elif metric == 'bin_clearing':
+        # for this we're going to count the number of objects that are inside of
+        # the bin and subtract from the total number of objects to get the number
+        # of objects outside the bin, which will be our reward
+
+        object_ids = self.env.obj_ids['rigid']
+        num_obj_in_zone = 0
+        for id in object_ids:
+          pose, orient = p.getBasePositionAndOrientation(id)
+
+          # assume the zone is a box and see if the pose is within that box
+          def test_zone(object_pose, zone):
+            zone_lower = zone[0]
+            zone_upper = zone[1]
+
+            return 0
+
 
       # Get cumulative rewards and return delta.
       reward = self.progress + step_reward - self._rewards

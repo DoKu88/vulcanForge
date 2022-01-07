@@ -14,7 +14,8 @@ For CLI options:
 $ python custom_env.py --help
 """
 # https://github.com/ray-project/ray/blob/master/rllib/examples/custom_env.py
-
+# For action space issue
+# https://stable-baselines.readthedocs.io/en/master/guide/rl_tips.html#tips-and-tricks-when-creating-a-custom-environment
 import os
 
 #from absl import app
@@ -111,7 +112,6 @@ def main():
     # above is from demos.py pretty much =======================================
     # bottom from: https://docs.ray.io/en/latest/rllib-env.html
 
-
     agent_cams = cameras.RealSenseD415.CONFIG
     #color_tuple = [
     #    gym.spaces.Box(0, 255, config['image_size'] + (3,), dtype=np.uint8)
@@ -126,12 +126,10 @@ def main():
     depth_tuple = gym.spaces.Box(0, 255, config_cam['image_size'] + (3,), dtype=np.uint8)
 
     position_orientation_bounds = gym.spaces.Box(
-        low=np.array([0.25, -0.5, 0., -1.0, -1.0, -1.0, -1.0], dtype=np.float32),
-        high=np.array([0.75, 0.5, 0.28, 1.0, 1.0, 1.0, 1.0], dtype=np.float32),
-        shape=(7,),
+        low=np.array([-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0]),
+        high=np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]),
         dtype=np.float32)
 
-    #bounds = np.array([[0.25, 0.75], [-0.5, 0.5], [0, 0.3]])
     print('flag_dict')
     print(flag_dict)
     config = {
@@ -173,11 +171,12 @@ def main():
     ppo_config.update(config)
     register_env(env_name, lambda config: Environment(config))
     trainer = ppo.PPOTrainer(env=env_name, config=config)
+    print('config space: ', trainer.get_config()['action_space'])
+
     ktr = 0
     while ktr < 10:
         print('training step: ', ktr)
         print(trainer.train())
-
         ktr += 1
 
 

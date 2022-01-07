@@ -38,11 +38,6 @@ class BlockInsertion_1(Task):
     self.goals.append(([(block_id, (2 * np.pi, None))], np.int32([[1]]),
                        [targ_pose], False, True, 'pose', None, 1))
 
-    size = (0.1, 0.1, 0.04)
-    pose = self.get_random_pose(env, size)
-    #env.add_object('ycb_dataset/cube/cube.urdf', pose, 'fixed')
-    #import pdb; pdb.set_trace()
-
   def add_block(self, env):
     """Add L-shaped block."""
     size = (0.1, 0.1, 0.04)
