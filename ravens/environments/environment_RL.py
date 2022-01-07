@@ -270,6 +270,8 @@ class Environment(gym.Env):
       action = self.normalize_action_space(action)
       p.addUserDebugLine([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
       p.addUserDebugLine([0.0, 0.0, 0.0], [1.0, 1.0, -1.0])
+
+      '''
       # test to switch to spatula ee
       print('switching ee!------------------------------------------------------')
 
@@ -281,6 +283,7 @@ class Environment(gym.Env):
           self.task.switch_ee('Suction', body=self.ee.body)
       self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
       self.ee_tip = 10  # Link ID of suction cup.
+      '''
 
       # adjust the input space size s.t. the ground is always the same wrt gripper
       bound_box_ee = p.getAABB(self.ur5, self.ee_tip)

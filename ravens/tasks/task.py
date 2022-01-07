@@ -284,18 +284,17 @@ class Task():
         # the bin and subtract from the total number of objects to get the number
         # of objects outside the bin, which will be our reward
 
-        object_ids = self.env.obj_ids['rigid']
         num_obj_in_zone = 0
-        for id in object_ids:
+        for id in objs:
           pose, orient = p.getBasePositionAndOrientation(id)
 
           # assume the zone is a box and see if the pose is within that box
-          def test_zone(object_pose, zone):
-            zone_lower = zone[0]
-            zone_upper = zone[1]
+          if self.in_zone(targs, pose):
+              num_obj_in_zone += 1
 
-            return 0
+        reward = num_obj_in_zone
 
+        return reward, info
 
       # Get cumulative rewards and return delta.
       reward = self.progress + step_reward - self._rewards
@@ -313,6 +312,22 @@ class Task():
       reward = 0.0
 
     return reward, info
+
+  def in_zone(self, zone, position):
+    """ Check if the given position is in the zone. Where the zone is given by
+    a box s.t. it has upper and lower x,y coordinates
+    """
+
+    zone_lower = zone[0]
+    zone_upper = zone[1]
+    in_zone = True
+
+    # only care about x,y coordinates
+    for i in range(2):
+      if position[i] < zone_lower[i] or position[i] > zone_upper[i]:
+          in_zone = False
+
+    return in_zone
 
   def done(self):
     """Check if the task is done or has failed.
