@@ -243,8 +243,6 @@ class Task():
       # Unpack next goal step.
       objs, matches, targs, _, _, metric, params, max_reward = self.goals[0]
 
-      import pdb; pdb.set_trace()
-
       # Evaluate by matching object poses.
       if metric == 'pose':
         step_reward = 0

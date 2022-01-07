@@ -61,9 +61,12 @@ class PickOrPlace():
        return True
 
    # Activate end effector, move up, and check picking success.
-   ee.activate()
-   timeout |= movep(postpick_pose, self.speed)
-   pick_success = ee.check_grasp()
+   try:
+     ee.activate()
+     timeout |= movep(postpick_pose, self.speed)
+     pick_success = ee.check_grasp()
+   except:
+     print('could not use end effector properly')
 
    return timeout
 

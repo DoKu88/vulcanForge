@@ -91,12 +91,12 @@ class Environment(gym.Env):
     #})
     self.observation_space = color_tuple
 
+    # restricted quaternion for right side up picks only :)
     self.position_orientation_bounds = gym.spaces.Box(
-        low=np.array([0.25, -0.5, 0., -1.0, -1.0, -1.0, -1.0], dtype=np.float32),
-        high=np.array([0.75, 0.5, 0.28, 1.0, 1.0, 1.0, 1.0], dtype=np.float32),
+        low=np.array([0.25, -0.5, 0.1, 0.0, 0.0, 0.0, 1.0], dtype=np.float32),
+        high=np.array([0.75, 0.5, 0.28, 0.0, 0.0, 0.0, 1.0], dtype=np.float32),
         shape=(7,),
         dtype=np.float32)
-
     self.action_space = self.position_orientation_bounds
 
     # Start PyBullet.
@@ -229,6 +229,12 @@ class Environment(gym.Env):
     self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
     self.ee_tip = 10  # Link ID of suction cup.
 
+    # adjust the input space size s.t. the ground is always the same wrt gripper
+    bound_box_ee = p.getAABB(self.ur5, 11)
+    bound_box_ee_size = [abs(bound_box_ee[0][i] - bound_box_ee[1][i]) for i in range(3)] # xyz
+    print('bounding box: ', bound_box_ee, ' \n size: ', bound_box_ee_size)
+    self.action_space.low[2] = bound_box_ee_size[2] + 0.02
+
     # Get revolute joint indices of robot (skip fixed joints).
     n_joints = p.getNumJoints(self.ur5)
     joints = [p.getJointInfo(self.ur5, i) for i in range(n_joints)]
@@ -275,6 +281,15 @@ class Environment(gym.Env):
           self.task.switch_ee('Suction', body=self.ee.body)
       self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
       self.ee_tip = 10  # Link ID of suction cup.
+
+      # adjust the input space size s.t. the ground is always the same wrt gripper
+      bound_box_ee = p.getAABB(self.ur5, self.ee_tip)
+      bound_box_ee_size = [abs(bound_box_ee[0][i] - bound_box_ee[1][i]) for i in range(3)] # xyz
+      bound_box_ee1 = p.getAABB(self.ur5, 11)
+      bound_box_ee_size1 = [abs(bound_box_ee1[0][i] - bound_box_ee1[1][i]) for i in range(3)] # xyz
+      print('bounding box: ', bound_box_ee, ' \n size: ', bound_box_ee_size)
+      print('bounding box1: ', bound_box_ee1, ' \n size1: ', bound_box_ee_size1)
+      self.action_space.low[2] = bound_box_ee_size[2] + bound_box_ee_size1[2] + 0.02
 
       #timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
       timeout = self.task.primitive(self.movej, self.movep, self.ee, action)
