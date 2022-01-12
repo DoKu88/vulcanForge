@@ -22,7 +22,7 @@ from ravens.utils import utils
 import pybullet as p
 
 
-class BlockInsertion_1(Task):
+class BinClearing(Task):
   """Insertion Task - Base Variant."""
 
   def __init__(self, *args, **kwargs):
@@ -31,12 +31,6 @@ class BlockInsertion_1(Task):
 
   def reset(self, env):
     super().reset(env)
-    #block_id = self.add_block(env)
-    #targ_pose = self.add_fixture(env)
-    # self.goals.append(
-    #     ([block_id], [2 * np.pi], [[0]], [targ_pose], 'pose', None, 1.))
-    #self.goals.append(([(block_id, (2 * np.pi, None))], np.int32([[1]]),
-    #                   [targ_pose], False, True, 'pose', None, 1))
     obj_ids = env.obj_ids['rigid']
     matches = False
     targs = np.array([[0.35, -0.3], [0.65, 0.3]]) # zone where bin is

@@ -62,11 +62,11 @@ from ray.tune.registry import register_env
 
 flag_dict = dict()
 flag_dict['assets_root'] = './ravens/environments/assets/'
-flag_dict['disp'] = False
-flag_dict['task'] = 'block-insertion'
+flag_dict['disp'] = True
+flag_dict['task'] = 'bin-clearing'
 flag_dict['n'] = 10
 flag_dict['use_egl'] = False
-flag_dict['assets_root'] = '.'
+#flag_dict['assets_root'] = '.'
 flag_dict['data_dir'] = '.'
 flag_dict['continuous'] = False
 flag_dict['steps_per_seg'] = 3
@@ -82,12 +82,6 @@ def main():
     else:
         device = torch.device('cpu')
         print("Device set to : cpu")
-
-    flag_dict['assets_root'] = './ravens/environments/assets/'
-    flag_dict['disp'] = True
-    flag_dict['task'] = 'block-insertion_1'
-    flag_dict['n'] = 10
-    flag_dict['use_egl'] = False
 
     # Initialize environment and task.
     task = tasks.names[flag_dict['task']](continuous = flag_dict['continuous'])

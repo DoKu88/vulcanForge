@@ -32,6 +32,8 @@ from gym import spaces
 import pybullet as p
 import pybullet as pb
 
+import random
+
 PLACE_STEP = 0.0003
 PLACE_DELTA_THRESHOLD = 0.005
 
@@ -196,6 +198,61 @@ class Environment(gym.Env):
 
     return obj_id
 
+  def add_objects_ycb(self, num_objs=3):
+    import trimesh
+    src_dir = os.path.join(self.assets_root, 'ycb_dataset')
+    ref_dir = 'ycb_dataset'
+
+    dirs = os.listdir(src_dir)
+    files = []
+    files_urdf = []
+
+    for dir in dirs:
+      local_dir = os.path.join(src_dir, dir)
+      local_ref_dir = os.path.join(ref_dir, dir)
+      local_files = os.listdir(local_dir)
+      for i in range(len(local_files)):
+        if 'urdf' in local_files[i]:
+          files_urdf.append(os.path.join(local_ref_dir, local_files[i]))
+
+    print('files_urdf: ', files_urdf)
+    items_ycb = np.random.choice(files_urdf, num_objs, replace=True)
+
+    trimesh_objs = []
+
+    # stand in
+    for i in range(len(items_ycb)):
+        orient = [0.0, 0.0, 0.0, 1.0]
+        position = [random.uniform(0.3, 0.5), random.uniform(-0.3, 0.0), random.uniform(0.1, 0.2)] #[0.5, 0.3, 0.02]
+        # get pose of object
+        pose = [position, orient]
+        #size = [0.2, 0.2, 0.2]
+
+        '''
+        len_last = len(items_ycb[i].split('/')[-1])
+        obj_file = items_ycb[i][:-len_last]
+
+        #[obj_file += items_ycb[i].split('/')[i] for i in range(len(items_ycb[i].split('/')) -1)]
+        obj_file = os.path.join(obj_file, 'textured.obj')
+        print('obj_file: ', obj_file)
+        obj_file1 = os.path.join(self.assets_root[2:], obj_file)
+        obj_file1 = os.path.join(os.getcwd(), obj_file1)
+        mesh1 = trimesh.load_mesh(obj_file1)
+
+        import pdb; pdb.set_trace()
+
+        #mesh = trimesh.load_mesh(obj_file)
+        #trimesh_objs.append(trimesh.exchange.obj.load_obj(obj_file))
+        trimesh.collision.CollisionManager.add_object(str(i), mesh1)
+        '''
+
+
+
+        print('adding item ', items_ycb[i], ' ', position)
+        self.add_object_ycb(items_ycb[i], pose)
+
+    print('great success!!!')
+
   #---------------------------------------------------------------------------
   # Standard Gym Functions
   #---------------------------------------------------------------------------
@@ -224,16 +281,10 @@ class Environment(gym.Env):
     # Load UR5 robot arm equipped with suction end effector.
     # TODO(andyzeng): add back parallel-jaw grippers.
     self.ur5 = pybullet_utils.load_urdf(
-        p, os.path.join(self.assets_root, UR5_URDF_PATH))
-    #import pdb; pdb.set_trace()
+        p, os.path.join(self.assets_root, UR5_URDF_PATH)) #-------------------------------------------------------------------------------------
+
     self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
     self.ee_tip = 10  # Link ID of suction cup.
-
-    # adjust the input space size s.t. the ground is always the same wrt gripper
-    bound_box_ee = p.getAABB(self.ur5, 11)
-    bound_box_ee_size = [abs(bound_box_ee[0][i] - bound_box_ee[1][i]) for i in range(3)] # xyz
-    print('bounding box: ', bound_box_ee, ' \n size: ', bound_box_ee_size)
-    self.action_space.low[2] = bound_box_ee_size[2] + 0.02
 
     # Get revolute joint indices of robot (skip fixed joints).
     n_joints = p.getNumJoints(self.ur5)
@@ -249,6 +300,8 @@ class Environment(gym.Env):
 
     # Reset task.
     self.task.reset(self)
+
+    self.add_objects_ycb()
 
     # Re-enable rendering.
     p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
@@ -268,8 +321,6 @@ class Environment(gym.Env):
     if action is not None:
       print('action: ', action)
       action = self.normalize_action_space(action)
-      p.addUserDebugLine([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-      p.addUserDebugLine([0.0, 0.0, 0.0], [1.0, 1.0, -1.0])
 
       '''
       # test to switch to spatula ee
@@ -284,15 +335,6 @@ class Environment(gym.Env):
       self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
       self.ee_tip = 10  # Link ID of suction cup.
       '''
-
-      # adjust the input space size s.t. the ground is always the same wrt gripper
-      bound_box_ee = p.getAABB(self.ur5, self.ee_tip)
-      bound_box_ee_size = [abs(bound_box_ee[0][i] - bound_box_ee[1][i]) for i in range(3)] # xyz
-      bound_box_ee1 = p.getAABB(self.ur5, 11)
-      bound_box_ee_size1 = [abs(bound_box_ee1[0][i] - bound_box_ee1[1][i]) for i in range(3)] # xyz
-      print('bounding box: ', bound_box_ee, ' \n size: ', bound_box_ee_size)
-      print('bounding box1: ', bound_box_ee1, ' \n size1: ', bound_box_ee_size1)
-      self.action_space.low[2] = bound_box_ee_size[2] + bound_box_ee_size1[2] + 0.02
 
       #timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
       timeout = self.task.primitive(self.movej, self.movep, self.ee, action)
@@ -316,6 +358,7 @@ class Environment(gym.Env):
 
     obs = self._get_obs()
 
+    '''
     size = (0.1, 0.1, 0.04)
     pose = self.task.get_random_pose(self, size)
     pose = list(pose)
@@ -323,6 +366,7 @@ class Environment(gym.Env):
         pose[i] = list(pose[i])
     pose[0][2] += 0.5
     self.add_object_ycb('ycb_dataset/003_cracker_box/003_cracker_box.urdf', pose)
+    '''
 
     return obs, reward, done, info
 
