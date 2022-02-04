@@ -24,7 +24,7 @@ import time
 import gym
 import numpy as np
 from ravens.tasks import cameras
-from ravens.tasks.grippers import Spatula
+#from ravens.tasks.grippers import Spatula
 from ravens.utils import pybullet_utils
 from ravens.utils import utils
 from gym import spaces
@@ -61,7 +61,6 @@ class Environment(gym.Env):
     Raises:
       RuntimeError: if pybullet cannot load fileIOPlugin.
     """
-
     # can't have multiple constructors, so if assets_root, the first argument
     # is an EnvContext assume that it's acting as the role of env config from
     # an rllib training thing
@@ -193,13 +192,13 @@ class Environment(gym.Env):
       pose[1])
     self.obj_ids[category].append(obj_id)
 
+    p.stepSimulation()
     while not self.is_static:
       p.stepSimulation()
 
     return obj_id
 
   def add_objects_ycb(self, num_objs=3):
-    import trimesh
     src_dir = os.path.join(self.assets_root, 'ycb_dataset')
     ref_dir = 'ycb_dataset'
 
@@ -215,7 +214,7 @@ class Environment(gym.Env):
         if 'urdf' in local_files[i]:
           files_urdf.append(os.path.join(local_ref_dir, local_files[i]))
 
-    print('files_urdf: ', files_urdf)
+    #print('files_urdf: ', files_urdf)
     items_ycb = np.random.choice(files_urdf, num_objs, replace=True)
 
     trimesh_objs = []
@@ -227,28 +226,7 @@ class Environment(gym.Env):
         # get pose of object
         pose = [position, orient]
         #size = [0.2, 0.2, 0.2]
-
-        '''
-        len_last = len(items_ycb[i].split('/')[-1])
-        obj_file = items_ycb[i][:-len_last]
-
-        #[obj_file += items_ycb[i].split('/')[i] for i in range(len(items_ycb[i].split('/')) -1)]
-        obj_file = os.path.join(obj_file, 'textured.obj')
-        print('obj_file: ', obj_file)
-        obj_file1 = os.path.join(self.assets_root[2:], obj_file)
-        obj_file1 = os.path.join(os.getcwd(), obj_file1)
-        mesh1 = trimesh.load_mesh(obj_file1)
-
-        import pdb; pdb.set_trace()
-
-        #mesh = trimesh.load_mesh(obj_file)
-        #trimesh_objs.append(trimesh.exchange.obj.load_obj(obj_file))
-        trimesh.collision.CollisionManager.add_object(str(i), mesh1)
-        '''
-
-
-
-        print('adding item ', items_ycb[i], ' ', position)
+        #print('adding item ', items_ycb[i], ' ', position)
         self.add_object_ycb(items_ycb[i], pose)
 
     print('great success!!!')
@@ -271,7 +249,8 @@ class Environment(gym.Env):
     p.setGravity(0, 0, -9.8)
 
     # Temporarily disable rendering to load scene faster.
-    p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
+    #p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
+    p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
 
     pybullet_utils.load_urdf(p, os.path.join(self.assets_root, PLANE_URDF_PATH),
                              [0, 0, -0.001])
@@ -318,23 +297,40 @@ class Environment(gym.Env):
     Returns:
       (obs, reward, done, info) tuple containing MDP step data.
     """
+
     if action is not None:
       print('action: ', action)
       action = self.normalize_action_space(action)
 
-      '''
       # test to switch to spatula ee
       print('switching ee!------------------------------------------------------')
-
       if self.task.ee_label == 'Suction':
           print('switch to spatula')
-          self.task.switch_ee('Spatula', body=self.ee.body)
+          print(type(self.ee))
+          self.ee = self.task.switch_ee('Spatula', self.assets_root, self.ur5, 9, self.obj_ids, body=[self.ee.body, self.ee.body_visual], constraint_id=self.ee.constraint_id)
+          self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
       elif self.task.ee_label == 'Spatula':
           print('switch to suction')
-          self.task.switch_ee('Suction', body=self.ee.body)
-      self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
+          print(type(self.ee))
+          self.ee = self.task.switch_ee('Suction', self.assets_root, self.ur5, 9, self.obj_ids, body=[self.ee.body], constraint_id=self.ee.constraint_id)
+          self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
+      #self.ee = self.task.ee(self.assets_root, self.ur5, 9, self.obj_ids)
       self.ee_tip = 10  # Link ID of suction cup.
-      '''
+
+      # Reset robot position s.t. we can attach the end effector
+      # Get revolute joint indices of robot (skip fixed joints).
+      n_joints = p.getNumJoints(self.ur5)
+      joints = [p.getJointInfo(self.ur5, i) for i in range(n_joints)]
+      self.joints = [j[0] for j in joints if j[2] == p.JOINT_REVOLUTE]
+
+      # Move robot to home joint configuration.
+      for i in range(len(self.joints)):
+        p.resetJointState(self.ur5, self.joints[i], self.homej[i])
+
+      print('joint config reset')
+
+      # Reset end effector.
+      # self.ee.release()
 
       #timeout = self.task.primitive(self.movej, self.movep, self.ee, **action)
       timeout = self.task.primitive(self.movej, self.movep, self.ee, action)
@@ -346,6 +342,7 @@ class Environment(gym.Env):
         return obs, 0.0, True, self.info
 
     # Step simulator asynchronously until objects settle.
+    p.stepSimulation()
     while not self.is_static:
       p.stepSimulation()
 
@@ -590,7 +587,6 @@ class ContinuousEnvironment(Environment):
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-
     # Redefine action space, assuming it's a suction-based task. We'll override
     # it in `reset()` if that is not the case.
     self.position_bounds = gym.spaces.Box(

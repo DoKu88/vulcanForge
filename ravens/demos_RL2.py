@@ -36,7 +36,6 @@ import numpy as np
 import os
 import random
 import sys
-import pdb
 from gym.envs.registration import register
 import torch
 
@@ -84,7 +83,7 @@ def main():
         print("Device set to : cpu")
 
     # Initialize environment and task.
-    task = tasks.names[flag_dict['task']](continuous = flag_dict['continuous'])
+    task = tasks.names[flag_dict['task']](continuous = flag_dict['continuous'], ee='Fingers')
     task.mode = flag_dict['mode']
 
     # Initialize scripted oracle agent and dataset.
@@ -145,22 +144,32 @@ def main():
         'rollout_fragment_length':1
     }
 
+
+    env = Environment(flag_dict)
+    env.reset()
+    for i in range(10):
+        action = [ 0.25, -0.5, 0.28, 0.0, 0.0, 0.0, 1.0]
+        env.step(action)
+
+    print('good bye!')
+    sys.exit()
+
     env_name = "example-v0"
 
     # ==========================================================================
     # stable_baselines3 experiment =============================================
     # NOTE: supports dict observations but not nested observation spaces :(
-    '''
     env = Environment(flag_dict)
     model = PPO('CnnPolicy', env)
     model.learn(total_timesteps=100) # log_interval=1, tb_log_name=folder_name, callback=callbacks
-    '''
 
+
+    '''
     # ==========================================================================
     # RLLIB experiment =========================================================
-    #ray.init(local_mode=True, ignore_reinit_error=True) # local mode for debugging
+    ray.init(local_mode=True, ignore_reinit_error=True) # local mode for debugging
 
-    ray.init(local_mode=True)
+    #ray.init(local_mode=True)
     ppo_config = ppo.DEFAULT_CONFIG.copy()
     ppo_config.update(config)
     register_env(env_name, lambda config: Environment(config))
@@ -172,7 +181,7 @@ def main():
         print('training step: ', ktr)
         print(trainer.train())
         ktr += 1
-
+    '''
 
 
 if __name__ == "__main__":

@@ -26,8 +26,8 @@ import numpy as np
 from ravens.tasks import cameras
 from ravens.tasks import planners
 from ravens.tasks import primitives
-from ravens.tasks.grippers import Suction, Spatula
-from ravens.utils import utils
+from ravens.tasks.grippers import Suction, Spatula, Fingers
+from ravens.utils import utils, pybullet_utils
 
 import pybullet as p
 
@@ -47,6 +47,9 @@ class Task():
         self.ee = Suction
     elif ee == 'Spatula':
         self.ee = Spatula
+    elif ee == 'Fingers':
+        self.ee = Fingers
+
     self.mode = 'train'
     self.sixdof = False
     if continuous:
@@ -80,22 +83,29 @@ class Task():
       self.primitive.reset()
 
   # switch end effector in case we want to switch tools
-  def switch_ee(self, ee_new_label, body=None):
+  def switch_ee(self, ee_new_label, assets_root, robot, ee, obj_ids, body=None, constraint_id=None):
       if body is not None:
-          self.remove_ee(body)
+          self.remove_ee(body, constraint_id)
 
       self.ee_label = ee_new_label
 
       if ee_new_label == "Spatula":
-          ee_new = Spatula
+          self.ee = Spatula
+          #ee_new = Spatula(assets_root, robot, ee, obj_ids)
+          #self.ee = Spatula(assets_root, robot, ee, obj_ids)
       elif ee_new_label == "Suction":
-          ee_new = Suction
+          self.ee = Suction
+          #ee_new = Suction(assets_root, robot, ee, obj_ids)
+          #self.ee = Suction(assets_root, robot, ee, obj_ids)
 
-      self.ee = ee_new
+      return self.ee
 
   # using the ID returned from pybullet, remove end effector body
-  def remove_ee(self, body):
-      p.removeBody(body)
+  def remove_ee(self, body, constraint_id):
+      print('REMOVE body: ', body, ' constraint_id: ', constraint_id)
+      p.removeConstraint(constraint_id)
+      for i in range(len(body)):
+          p.removeBody(body[i])
 
   #-------------------------------------------------------------------------
   # Oracle Agent

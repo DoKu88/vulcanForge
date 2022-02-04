@@ -21,10 +21,13 @@ import numpy as np
 from ravens.utils import pybullet_utils
 
 import pybullet as p
+import time
 
 SPATULA_BASE_URDF = 'ur5/spatula/spatula-base.urdf'
 SUCTION_BASE_URDF = 'ur5/suction/suction-base.urdf'
 SUCTION_HEAD_URDF = 'ur5/suction/suction-head.urdf'
+
+FINGERS_BASE_URDF = 'ur5/gripper/robotiq_2f_85.urdf'
 
 
 class Gripper:
@@ -59,7 +62,7 @@ class Spatula(Gripper):
     pose = ((0.487, 0.109, 0.438), p.getQuaternionFromEuler((np.pi, 0, 0)))
     base = pybullet_utils.load_urdf(
         p, os.path.join(self.assets_root, SPATULA_BASE_URDF), pose[0], pose[1])
-    p.createConstraint(
+    self.constraint_id = p.createConstraint(
         parentBodyUniqueId=robot,
         parentLinkIndex=ee,
         childBodyUniqueId=base,
@@ -69,6 +72,9 @@ class Spatula(Gripper):
         parentFramePosition=(0, 0, 0),
         childFramePosition=(0, 0, 0.01))
     self.body = base
+
+    print('self.body/base spatula: ', self.body)
+    print('constraint_id: ', self.constraint_id)
 
   def detect_contact(self):
     """Detects a contact with a rigid object."""
@@ -139,13 +145,16 @@ class Suction(Gripper):
         parentFramePosition=(0, 0, 0),
         childFramePosition=(0, 0, 0.01))
 
+    self.body_visual = base
+    print('base body suction (visual) id: ', base)
+
     # Load suction tip model (visual and collision) with compliance.
     # urdf = 'assets/ur5/suction/suction-head.urdf'
     pose = ((0.487, 0.109, 0.347), p.getQuaternionFromEuler((np.pi, 0, 0)))
     self.body = pybullet_utils.load_urdf(
         p, os.path.join(self.assets_root, SUCTION_HEAD_URDF), pose[0], pose[1])
     print('self.body suction: ', self.body, ' ==================================')
-    constraint_id = p.createConstraint(
+    self.constraint_id = p.createConstraint(
         parentBodyUniqueId=robot,
         parentLinkIndex=ee,
         childBodyUniqueId=self.body,
@@ -154,7 +163,9 @@ class Suction(Gripper):
         jointAxis=(0, 0, 0),
         parentFramePosition=(0, 0, 0),
         childFramePosition=(0, 0, -0.08))
-    p.changeConstraint(constraint_id, maxForce=50)
+    p.changeConstraint(self.constraint_id, maxForce=50)
+
+    print('constraint_id: ', self.constraint_id)
 
     # Reference to object IDs in environment for simulating suction.
     self.obj_ids = obj_ids
@@ -281,3 +292,166 @@ class Suction(Gripper):
     if self.contact_constraint is not None:
       suctioned_object = p.getConstraintInfo(self.contact_constraint)[2]
     return suctioned_object is not None
+
+
+
+#-----------------------------------------------------------------------------
+# Parallel-Jaw Two-Finger Gripper (TODO: fix)
+#-----------------------------------------------------------------------------
+
+#class Robotiq2F85:
+class Fingers(Gripper):
+
+    #def __init__(self, robot, tool):
+    def __init__(self, assets_root, robot, ee, obj_ids):
+        super().__init__(assets_root, ee)
+
+        # ??????????????????????????????????????????????????????????????????????
+        self.robot = robot
+        #self.tool = tool # looks like ee?
+        self.ee = ee
+        # ??????????????????????????????????????????????????????????????????????
+
+        # Load finger gripper model (visual only?)
+        pos = [0.487, 0.109, 0.421]
+        rot = p.getQuaternionFromEuler([np.pi, 0, 0])
+        #urdf = 'assets/ur5/gripper/robotiq_2f_85.urdf'
+        urdf = FINGERS_BASE_URDF
+        self.body = p.loadURDF(os.path.join(self.assets_root, urdf), pos, rot) # base?
+        self.n_joints = p.getNumJoints(self.body)
+        self.activated = False
+
+        # Connect gripper base to robot tool
+        p.createConstraint(
+            parentBodyUniqueId = robot,
+            parentLinkIndex=ee,
+            childBodyUniqueId=self.body,
+            childLinkIndex=0, # may be -1?
+            jointType=p.JOINT_FIXED,
+            jointAxis=[0, 0, 0],
+            parentFramePosition=[0, 0, 0],
+            childFramePosition=[0, 0, -0.05])
+
+        # Set friction coefficients for gripper fingers
+        for i in range(p.getNumJoints(self.body)):
+            p.changeDynamics(self.body, i,
+                             lateralFriction=1.5,
+                             spinningFriction=1.0,
+                             rollingFriction=0.0001,
+                             # rollingFriction=1.0,
+                             frictionAnchor=True)  # contactStiffness=0.0, contactDamping=0.0
+
+        # Start thread to handle additional gripper constraints
+        self.motor_joint = 1
+        # self.constraints_thread = threading.Thread(target=self.step)
+        # self.constraints_thread.daemon = True
+        # self.constraints_thread.start()
+
+        # copied from suction gripper
+        # Reference to object IDs in environment for simulating suction.
+        self.obj_ids = obj_ids
+
+        # Indicates whether gripper is gripping anything (rigid or def).
+        self.activated = False
+
+        # For gripping and releasing rigid objects.
+        self.contact_constraint = None
+
+        # Defaults for deformable parameters, and can override in tasks.
+        self.def_ignore = 0.035  # TODO(daniel) check if this is needed
+        self.def_threshold = 0.030
+        self.def_nb_anchors = 1
+
+        # Track which deformable is being gripped (if any), and anchors.
+        self.def_grip_item = None
+        self.def_grip_anchors = []
+
+        # Determines release when gripped deformable touches a rigid/def.
+        # TODO(daniel) should check if the code uses this -- not sure?
+        self.def_min_vetex = None
+        self.def_min_distance = None
+
+        # Determines release when a gripped rigid touches defs (e.g. cloth-cover).
+        self.init_grip_distance = None
+        self.init_grip_item = None
+
+    # Control joint positions by enforcing hard contraints on gripper behavior
+    # Set one joint as the open/close motor joint (other joints should mimic)
+    def step(self):
+        # while True:
+        currj = [p.getJointState(self.body, i)[0]
+                 for i in range(self.n_joints)]
+        indj = [6, 3, 8, 5, 10]
+        targj = [currj[1], -currj[1], -currj[1], currj[1], currj[1]]
+        p.setJointMotorControlArray(self.body, indj, p.POSITION_CONTROL,
+                                    targj, positionGains=np.ones(5))
+        # time.sleep(0.001)
+
+    # Close gripper fingers and check grasp success (width between fingers
+    # exceeds some threshold)
+    def activate(self, valid_obj=None):
+        p.setJointMotorControl2(self.body, self.motor_joint,
+                                p.VELOCITY_CONTROL, targetVelocity=1, force=100)
+        if not self.external_contact():
+            while self.moving():
+                time.sleep(0.001)
+        self.activated = True
+
+    # Open gripper fingers
+    def release(self):
+        p.setJointMotorControl2(self.body, self.motor_joint,
+                                p.VELOCITY_CONTROL, targetVelocity=-1, force=100)
+        while self.moving():
+            time.sleep(0.001)
+        self.activated = False
+
+    # If activated and object in gripper: check object contact
+    # If activated and nothing in gripper: check gripper contact
+    # If released: check proximity to surface
+    def detect_contact(self):
+        obj, link, ray_frac = self.check_proximity()
+        if self.activated:
+            empty = self.grasp_width() < 0.01
+            cbody = self.body if empty else obj
+            if obj == self.body or obj == 0:
+                return False
+            return self.external_contact(cbody)
+        else:
+            return ray_frac < 0.14 or self.external_contact()
+
+    # Return if body is in contact with something other than gripper
+    def external_contact(self, body=None):
+        if body is None:
+            body = self.body
+        pts = p.getContactPoints(bodyA=body)
+        pts = [pt for pt in pts if pt[2] != self.body]
+        return len(pts) > 0
+
+    # Check grasp success
+    def check_grasp(self):
+        while self.moving():
+            time.sleep(0.001)
+        success = self.grasp_width() > 0.01
+        return success
+
+    def grasp_width(self):
+        lpad = np.array(p.getLinkState(self.body, 4)[0])
+        rpad = np.array(p.getLinkState(self.body, 9)[0])
+        dist = np.linalg.norm(lpad - rpad) - 0.047813
+        return dist
+
+    # Helper functions
+
+    def moving(self):
+        v = [np.linalg.norm(p.getLinkState(
+            self.body, i, computeLinkVelocity=1)[6]) for i in [3, 8]]
+        return any(np.array(v) > 1e-2)
+
+    def check_proximity(self):
+        ee_pos = np.array(p.getLinkState(self.robot, self.ee)[0])
+        tool_pos = np.array(p.getLinkState(self.body, 0)[0])
+        vec = (tool_pos - ee_pos) / np.linalg.norm((tool_pos - ee_pos))
+        ee_targ = ee_pos + vec
+        ray_data = p.rayTest(ee_pos, ee_targ)[0]
+        obj, link, ray_frac = ray_data[0], ray_data[1], ray_data[2]
+        return obj, link, ray_frac

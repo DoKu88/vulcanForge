@@ -28,9 +28,8 @@ def load_urdf(pybullet_client, file_path, *args, **kwargs):
   try:
     return pybullet_client.loadURDF(file_path, *args, **kwargs)
   except pybullet_client.error:
+    print('failed to loadURDF')
     pass
 
 
 # END GOOGLE-EXTERNAL
-
-
